@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NTS E-shop - Administrace</title>
+    <!-- Načtení Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Jednoduché styly pro modální okna */
+        .modal {
+            transition: opacity 0.25s ease;
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+        }
+        .modal-container {
+            background-color: white;
+            padding: 2rem;
+            border-radius: 0.5rem;
+            max-width: 90%;
+            width: 500px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            z-index: 100;
+        }
+        /* Ikonky (nahrazení za SVG pro jednoduchost) */
+        .icon-trash:before { content: '🗑️'; margin-right: 0.5rem; }
+        .icon-pencil:before { content: '✏️'; margin-right: 0.5rem; }
+        .icon-check:before { content: '✓'; margin-right: 0.5rem; color: green; }
+        
+        /* Styl pro zprávu o úspěchu */
+        #success-message {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 200;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 font-sans antialiased">
+
+    <!-- ZPRÁVA O ÚSPĚCHU -->
+    <div id="success-message" class="hidden bg-green-500 text-white p-3 rounded-lg shadow-xl font-bold transition duration-300">
+        <span class="icon-check"></span> Produkt byl úspěšně uložen!
+    </div>
+
+    <div class="container mx-auto max-w-4xl p-8">
+
+        <!-- HLAVNÍ STRÁNKA (VIEW) -->
+        <div id="main-view">
+            <h1 class="text-4xl font-bold text-gray-800">NTS E-shop</h1>
+            <hr class="my-4 border-t-2 border-gray-300">
+
+            <!-- Sekce objednávek -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <!-- Nová Prodejka -->
+                <div>
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-3">Produkty z kategorie NOVÁ PRODEJKA</h2>
+                    <div id="orders-nove" class="bg-white p-4 rounded-lg shadow-md min-h-[100px]">
+                        <!-- Obsah se generuje dynamicky -->
+                    </div>
+                </div>
+
+                <!-- Bazárek -->
+                <div>
+                    <h2 class="text-2xl font-semibold text-gray-700 mb-3">Bazárek</h2>
+                    <div id="orders-bazar" class="bg-white p-4 rounded-lg shadow-md min-h-[100px]">
+                        <!-- Obsah se generuje dynamicky -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Admin Akce -->
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-700 mb-3">Admin akce</h2>
+                <div class="bg-white p-4 rounded-lg shadow-md flex flex-col md:flex-row gap-4">
+                    <button id="btn-show-delete" class="flex-1 bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition duration-200">
+                        Smazat stávající produkty z nabídky
+                    </button>
+                    <button id="btn-show-add" class="flex-1 bg-green-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-600 transition duration-200">
+                        Přidat nové produkty do nabídky
+                    </button>
+                    <button id="btn-show-edit" class="flex-1 bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200">
+                        Upravit informace ve stávajících nabídkách
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- FORMULÁŘ PRO PŘIDÁNÍ/EDITACI (VIEW) -->
+        <div id="form-view" class="hidden">
+            <h2 id="form-title" class="text-3xl font-bold text-gray-800 mb-4">...</h2>
+            <form id="product-form" class="bg-white p-6 rounded-lg shadow-lg space-y-4">
+                
+                <!-- Kategorie -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Do které kategorie produkt patří?</label>
+                    <div class="flex gap-4 mt-1">
+                        <label class="flex items-center">
+                            <input type="radio" name="Typ" value="Nove" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300" required>
+                            <span class="ml-2 text-gray-700">Nová prodejka</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="Typ" value="Bazar" class="focus:ring-indigo-500 h-4 w-4 text-indigo-600 border-gray-300">
+                            <span class="ml-2 text-gray-700">Bazarové</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Název produktu -->
+                <div>
+                    <label for="PRODUCT" class="block text-sm font-medium text-gray-700">Název produktu / inzerce</label>
+                    <input type="text" name="PRODUCT" id="PRODUCT" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+
+                <!-- Odkaz na fotky -->
+                <div>
+                    <label for="Foto" class="block text-sm font-medium text-gray-700">Odkaz na fotografie</label>
+                    <input type="text" name="Foto" id="Foto" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+
+                <!-- Stav produktu -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Stav produktu:</label>
+                    <select name="Stav" id="Stav" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                        <option value="Nový, nepoužitý, nerozbalený - netestováno, plná záruka">Nový, nepoužitý, nerozbalený - netestováno, plná záruka</option>
+                        <option value="Krátce používaný produkt, nepoškozený, bez známek používání">Krátce používaný produkt, nepoškozený, bez známek používání</option>
+                        <option value="Používaný produkt, bez známek používání">Používaný produkt, bez známek používání</option>
+                        <option value="Použitý, nese známky použití - viz foto">Použitý, nese známky použití - viz foto</option>
+                        <option value="Repasovaný produkt">Repasovaný produkt</option>
+                        <option value="Nefunkční / poškozeno / zničeno - na náhradní díly">Nefunkční / poškozeno / zničeno - na náhradní díly</option>
+                    </select>
+                </div>
+
+                <!-- Popis -->
+                <div>
+                    <label for="Popis" class="block text-sm font-medium text-gray-700">Popis (nezapomenout také napsat, zda je platba nutná předem nebo až po převzetí):</label>
+                    <textarea name="Popis" id="Popis" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+
+                <!-- Dostupnost -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Dostupnost:</label>
+                    <select name="Dostupnost" id="Dostupnost" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                        <option value="Skladem ihned k osobnímu odběru">Skladem ihned k osobnímu odběru</option>
+                        <option value="Skladem do 3 dní od objednání">Skladem do 3 dní od objednání</option>
+                        <option value="Na objednávku - doručení ve stejný den">Na objednávku - doručení ve stejný den</option>
+                        <option value="Máme skladem na externím skladu - po objednání zboží převezeme do několika dní">Máme skladem na externím skladu - po objednání zboží převezeme do několika dní</option>
+                    </select>
+                </div>
+
+                <!-- Počet kusů -->
+                <div>
+                    <label for="Kusy" class="block text-sm font-medium text-gray-700">Počet kusů skladem (napsat pouze číslo):</label>
+                    <input type="number" name="Kusy" id="Kusy" min="0" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                </div>
+
+                <!-- Vyžádat e-mail -->
+                <div class="flex items-center">
+                    <input type="checkbox" name="Email" id="Email" value="1" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded">
+                    <label for="Email" class="ml-2 block text-sm text-gray-900">Vyžádat e-mail: Pouze pro elektronické licence</label>
+                </div>
+
+                <!-- Tlačítka formuláře -->
+                <div class="flex justify-end gap-4 pt-4">
+                    <button type="button" id="btn-cancel-form" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-200">
+                        Zrušit
+                    </button>
+                    <button type="submit" id="btn-submit-form" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700 transition duration-200">
+                        <!-- Text se mění (Uložit / Uložit změny) -->
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- SEZNAM PRODUKTŮ PRO SMAZÁNÍ/EDITACI (VIEW) -->
+        <div id="list-view" class="hidden">
+            <h2 id="list-title" class="text-3xl font-bold text-gray-800 mb-4">...</h2>
+            <div id="product-list-container" class="bg-white p-6 rounded-lg shadow-lg space-y-3">
+                <!-- Seznam produktů se generuje dynamicky -->
+            </div>
+            <button type="button" id="btn-cancel-list" class="mt-6 bg-gray-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 transition duration-200">
+                Zpět na hlavní stránku
+            </button>
+        </div>
+    </div>
+
+    <!-- MODÁLNÍ OKNA -->
+
+    <!-- Modál pro výběr kategorie (mazání/editace) -->
+    <div id="category-modal" class="modal modal-overlay hidden">
+        <div class="modal-container text-center">
+            <h3 id="category-modal-title" class="text-xl font-semibold mb-4">...</h3>
+            <div class="flex flex-col gap-4">
+                <button id="btn-category-nove" class="bg-green-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-green-600 transition duration-200">
+                    Prodejka NOVÉ
+                </button>
+                <button id="btn-category-bazar" class="bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition duration-200">
+                    Bazarové produkty
+                </button>
+                <button id="btn-cancel-category-modal" class="mt-4 bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-200">
+                    Zrušit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modál pro potvrzení smazání -->
+    <div id="delete-confirm-modal" class="modal modal-overlay hidden">
+        <div class="modal-container text-center">
+            <h3 class="text-xl font-semibold mb-2">Opravdu chcete produkt smazat?</h3>
+            <p class="text-gray-600 mb-6">Tato akce je nevratná!</p>
+            <div class="flex justify-center gap-4">
+                <button id="btn-cancel-delete" class="bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-400 transition duration-200">
+                    Zrušit
+                </button>
+                <button id="btn-confirm-delete" class="bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition duration-200">
+                    Opravdu smazat
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Firebase a aplikační skript -->
+    <script type="module">
+        // Import funkcí z Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // Odebrány importy pro Auth
+        import { getDatabase, ref, onValue, get, set, push, update, remove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // Konfigurace Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyDWuTL_dbpAaLc6GEaIBwyQMCemYrrT1DM",
+            authDomain: "nts-eshop.firebaseapp.com",
+            projectId: "nts-eshop",
+            // Používáme regionální URL pro odstranění varování z konzole
+            databaseURL: "https://nts-eshop-default-rtdb.europe-west1.firebasedatabase.app",
+            storageBucket: "nts-eshop.firebasestorage.app",
+            messagingSenderId: "882610702624",
+            appId: "1:882610702624:web:d692d9421d493119ebaf45",
+            measurementId: "G-C2G6CMEBJ5"
+        };
+
+        // Inicializace Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+        const productsRef = ref(db, 'products');
+
+        // Globální proměnné pro stav
+        let currentEditingKey = null;
+        let currentAction = null; // 'delete' or 'edit'
+        let productToDeleteKey = null;
+        let allProductsCache = {}; // Cache pro všechny produkty
+
+        // DOM Elementy
+        const mainView = document.getElementById('main-view');
+        const formView = document.getElementById('form-view');
+        const listView = document.getElementById('list-view');
+        const successMessage = document.getElementById('success-message'); // Element pro zprávu o úspěchu
+        
+        const ordersNove = document.getElementById('orders-nove');
+        const ordersBazar = document.getElementById('orders-bazar');
+        
+        const productForm = document.getElementById('product-form');
+        const formTitle = document.getElementById('form-title');
+        const btnSubmitForm = document.getElementById('btn-submit-form');
+        
+        const productListContainer = document.getElementById('product-list-container');
+        const listTitle = document.getElementById('list-title');
+
+        // Modály
+        const categoryModal = document.getElementById('category-modal');
+        const categoryModalTitle = document.getElementById('category-modal-title');
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+
+
+        // Funkce pro zobrazení zprávy o úspěchu
+        function showSuccessMessage() {
+            successMessage.classList.remove('hidden');
+            setTimeout(() => {
+                successMessage.classList.add('hidden');
+            }, 3000); // Skryje zprávu po 3 sekundách
+        }
+
+        // Funkce pro přepínání pohledů
+        function showView(viewId) {
+            mainView.classList.add('hidden');
+            formView.classList.add('hidden');
+            listView.classList.add('hidden');
+            
+            document.getElementById(viewId).classList.remove('hidden');
+        }
+
+        // Funkce pro zobrazení modálu
+        function showModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+        }
+
+        // Funkce pro skrytí modálu
+        function hideModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        // === Logika pro načítání a zobrazení objednávek ===
+
+        function renderOrders(products) {
+            ordersNove.innerHTML = '';
+            ordersBazar.innerHTML = '';
+            
+            let noveOrdersFound = false;
+            let bazarOrdersFound = false;
+
+            if (products) {
+                Object.entries(products).forEach(([key, product]) => {
+                    allProductsCache[key] = product; // Uložení do cache
+
+                    if (product.Reservation && parseInt(product.Reservation, 10) === 1) {
+                        const orderElement = document.createElement('div');
+                        orderElement.className = 'border border-yellow-400 bg-yellow-50 p-3 rounded-lg mb-3';
+                        orderElement.innerHTML = `
+                            <p class="font-bold text-gray-800">${product.PRODUCT}</p>
+                            <p class="text-sm text-gray-600">Objednáno kusů: <span class="font-bold">${product.Objednano || 'N/A'}</span></p>
+                            <button data-key="${key}" class="btn-process-order mt-2 bg-blue-500 text-white text-sm font-bold py-1 px-3 rounded-lg hover:bg-blue-600 transition duration-200">
+                                Označit jako vyřízeno
+                            </button>
+                        `;
+
+                        if (product.Typ === 'Nove') {
+                            ordersNove.appendChild(orderElement);
+                            noveOrdersFound = true;
+                        } else if (product.Typ === 'Bazar') {
+                            ordersBazar.appendChild(orderElement);
+                            bazarOrdersFound = true;
+                        }
+                    }
+                });
+            }
+
+            if (!noveOrdersFound) {
+                ordersNove.innerHTML = '<p class="text-gray-500"><span class="icon-check"></span>Žádné nové objednávky.</p>';
+            }
+            if (!bazarOrdersFound) {
+                ordersBazar.innerHTML = '<p class="text-gray-500"><span class="icon-check"></span>Žádné nové objednávky.</p>';
+            }
+
+            // Přidání event listenerů pro tlačítka "Vyřízeno"
+            document.querySelectorAll('.btn-process-order').forEach(btn => {
+                btn.onclick = (e) => processOrder(e.target.dataset.key);
+            });
+        }
+
+        // Funkce pro vyřízení objednávky
+        function processOrder(key) {
+            // Použijeme console.error namísto confirm(), protože je to zakázáno v prostředí.
+            if (!confirm('Opravdu chcete označit tuto objednávku jako vyřízenou?')) {
+                return;
+            }
+            
+            const productRef = ref(db, `products/${key}`);
+            update(productRef, {
+                Reservation: 0,
+                Objednano: null // Smaže pole "Objednano"
+            }).then(() => {
+                console.log("Objednávka úspěšně vyřízena.");
+                showSuccessMessage(); // Zobrazí zprávu
+            })
+            .catch(err => {
+                console.error("Chyba při vyřizování objednávky: ", err);
+                console.error("Nastala chyba při vyřizování objednávky. Zkontrolujte Firebase pravidla.");
+            });
+        }
+
+        // === Logika pro přidání produktu ===
+
+        document.getElementById('btn-show-add').onclick = () => {
+            currentEditingKey = null;
+            productForm.reset();
+            formTitle.textContent = 'Přidat nové položky do NTS E-shopu';
+            btnSubmitForm.textContent = 'Uložit a vystavit';
+            showView('form-view');
+        };
+
+        // === Logika pro smazání / úpravu (výběr) ===
+
+        document.getElementById('btn-show-delete').onclick = () => {
+            currentAction = 'delete';
+            categoryModalTitle.textContent = 'Zvolte, ze které kategorie chcete produkty mazat:';
+            showModal('category-modal');
+        };
+
+        document.getElementById('btn-show-edit').onclick = () => {
+            currentAction = 'edit';
+            categoryModalTitle.textContent = 'Zvolte, ze které kategorie chcete produkty upravit:';
+            showModal('category-modal');
+        };
+
+        document.getElementById('btn-cancel-category-modal').onclick = () => hideModal('category-modal');
+
+        document.getElementById('btn-category-nove').onclick = () => {
+            hideModal('category-modal');
+            loadProductList('Nove');
+        };
+        
+        document.getElementById('btn-category-bazar').onclick = () => {
+            hideModal('category-modal');
+            loadProductList('Bazar');
+        };
+
+        // Funkce pro načtení seznamu produktů (pro mazání/editaci)
+        function loadProductList(category) {
+            productListContainer.innerHTML = '<p>Načítám produkty...</p>';
+            listTitle.textContent = `${currentAction === 'edit' ? 'Upravit' : 'Smazat'} produkty - ${category === 'Nove' ? 'Nová Prodejka' : 'Bazarové'}`;
+            
+            let productsFound = false;
+
+            // Použijeme data z cache
+            const products = allProductsCache;
+            
+            productListContainer.innerHTML = ''; // Vyčistit před plněním
+
+            Object.entries(products).forEach(([key, product]) => {
+                if (product.Typ === category) {
+                    productsFound = true;
+                    const itemElement = document.createElement('div');
+                    itemElement.className = 'flex justify-between items-center p-3 border rounded-lg';
+                    
+                    itemElement.innerHTML = `<strong class="text-gray-800">${product.PRODUCT}</strong>`;
+                    
+                    const actionButton = document.createElement('button');
+                    actionButton.dataset.key = key;
+
+                    if (currentAction === 'edit') {
+                        actionButton.className = 'icon-pencil bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-200';
+                        actionButton.textContent = 'Upravit';
+                        actionButton.onclick = () => loadProductForEdit(key);
+                    } else { // delete
+                        actionButton.className = 'icon-trash bg-red-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-red-600 transition duration-200';
+                        actionButton.textContent = 'Smazat';
+                        actionButton.onclick = () => confirmDelete(key);
+                    }
+                    
+                    itemElement.appendChild(actionButton);
+                    productListContainer.appendChild(itemElement);
+                }
+            });
+
+            if (!productsFound) {
+                productListContainer.innerHTML = '<p class="text-gray-500">V této kategorii nebyly nalezeny žádné produkty.</p>';
+            }
+
+            showView('list-view');
+        }
+
+        // === Logika pro smazání (potvrzení) ===
+
+        function confirmDelete(key) {
+            productToDeleteKey = key;
+            showModal('delete-confirm-modal');
+        }
+
+        document.getElementById('btn-cancel-delete').onclick = () => {
+            productToDeleteKey = null;
+            hideModal('delete-confirm-modal');
+        };
+        
+        document.getElementById('btn-confirm-delete').onclick = () => {
+            if (productToDeleteKey) {
+                const productRef = ref(db, `products/${productToDeleteKey}`);
+                const productCategory = allProductsCache[productToDeleteKey].Typ; // Uložíme si kategorii před smazáním
+                
+                remove(productRef)
+                    .then(() => {
+                        console.log("Produkt úspěšně smazán");
+                        showSuccessMessage(); // Zobrazí zprávu
+                        if (!listView.classList.contains('hidden')) {
+                            loadProductList(productCategory);
+                        }
+                    })
+                    .catch(err => {
+                        console.error("Chyba při mazání: ", err);
+                        console.error("Nastala chyba při mazání. Zkontrolujte Firebase pravidla.");
+                    });
+                
+                productToDeleteKey = null;
+                hideModal('delete-confirm-modal');
+            }
+        };
+
+        // === Logika pro editaci ===
+
+        function loadProductForEdit(key) {
+            const product = allProductsCache[key];
+            if (!product) {
+                console.error("Produkt nenalezen v cache!");
+                return;
+            }
+
+            currentEditingKey = key;
+
+            // Naplnění formuláře
+            document.querySelector(`input[name="Typ"][value="${product.Typ}"]`).checked = true;
+            document.getElementById('PRODUCT').value = product.PRODUCT || '';
+            document.getElementById('Foto').value = product.Foto || '';
+            document.getElementById('Stav').value = product.Stav || '';
+            document.getElementById('Popis').value = product.Popis || '';
+            document.getElementById('Dostupnost').value = product.Dostupnost || '';
+            document.getElementById('Kusy').value = product.Kusy || 0;
+            document.getElementById('Email').checked = (product.Email && parseInt(product.Email, 10) === 1);
+
+            // Nastavení pohledu
+            formTitle.textContent = `Upravit produkt: ${product.PRODUCT}`;
+            btnSubmitForm.textContent = 'Uložit změny';
+            showView('form-view');
+        }
+
+        // === Odeslání formuláře (Přidání / Editace) ===
+
+        productForm.onsubmit = (e) => {
+            e.preventDefault();
+            console.log("Formulář odeslán, zpracovávám...");
+
+            const formData = new FormData(productForm);
+            const productData = {};
+            formData.forEach((value, key) => {
+                productData[key] = value;
+            });
+            
+            // Zpracování checkboxu (Email)
+            productData['Email'] = document.getElementById('Email').checked ? 1 : 0;
+            // Převedení kusů na číslo
+            productData['Kusy'] = parseInt(productData['Kusy'], 10);
+            
+            if (isNaN(productData.Kusy)) {
+                 productData.Kusy = 0; // Pojistka
+            }
+
+            console.log("Data k uložení:", productData);
+
+            if (currentEditingKey) {
+                // Upravujeme stávající
+                console.log(`Aktualizuji klíč: ${currentEditingKey}`);
+                const productRef = ref(db, `products/${currentEditingKey}`);
+                update(productRef, productData)
+                    .then(() => {
+                        console.log("Produkt úspěšně aktualizován");
+                        showSuccessMessage(); // Zobrazí zprávu
+                        showView('main-view');
+                    })
+                    .catch((err) => { 
+                        console.error("Chyba při aktualizaci produktu: ", err);
+                        console.error(`!!! Nastala chyba při aktualizaci: ${err.message}. ZKONTROLUJTE PRAVIDLA V REALTIME DATABASE!!!`);
+                    });
+            } else {
+                // Přidáváme nový
+                console.log("Přidávám nový produkt...");
+                productData['Reservation'] = 0; // Výchozí hodnota pro rezervaci
+                push(productsRef, productData)
+                    .then(() => {
+                        console.log("Produkt úspěšně přidán");
+                        showSuccessMessage(); // Zobrazí zprávu
+                        showView('main-view');
+                    })
+                    .catch((err) => {
+                        console.error("Chyba při přidání produktu: ", err);
+                        console.error(`!!! Nastala chyba při přidání: ${err.message}. ZKONTROLUJTE PRAVIDLA V REALTIME DATABASE!!!`);
+                    });
+            }
+        };
+
+
+        // === Navigace zpět ===
+
+        document.getElementById('btn-cancel-form').onclick = () => showView('main-view');
+        document.getElementById('btn-cancel-list').onclick = () => showView('main-view');
+
+
+        // === Inicializace Firebase a hlavní logiky ===
+
+        function runAppLogic() {
+            // Hlavní listener na změny v databázi
+            onValue(productsRef, (snapshot) => {
+                const data = snapshot.val();
+                allProductsCache = data || {}; // Aktualizace cache
+                console.log("Data z Firebase načtena/aktualizována.");
+                renderOrders(allProductsCache);
+                
+                // Pokud je zrovna otevřený seznam pro mazání/editaci, překreslíme ho
+                if (!listView.classList.contains('hidden')) {
+                    const currentCategory = listTitle.textContent.includes('Nová Prodejka') ? 'Nove' : 'Bazar';
+                    if(currentAction) { // Jen pokud je akce definována
+                         loadProductList(currentCategory);
+                    }
+                }
+            }, (error) => {
+                console.error("Chyba při načítání dat z Firebase: ", error);
+                ordersNove.innerHTML = "<p class='text-red-500'>Chyba připojení k databázi.</p>";
+                ordersBazar.innerHTML = "<p class='text-red-500'>Chyba připojení k databázi.</p>";
+            });
+        }
+
+        // Spouštíme logiku aplikace
+        console.log("Spouštím admin aplikaci bez autentizace...");
+        runAppLogic();
+
+    </script>
+</body>
+</html>
